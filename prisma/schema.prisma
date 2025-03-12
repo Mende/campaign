@@ -1,0 +1,114 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// prisma/schema.prisma
+
+model Account {
+  id                 Int       @id @default(autoincrement())
+  compoundId         String    @unique @map(name: "compound_id")
+  userId             Int       @map(name: "user_id")
+  providerType       String    @map(name: "provider_type")
+  providerId         String    @map(name: "provider_id")
+  providerAccountId  String    @map(name: "provider_account_id")
+  refreshToken       String?   @map(name: "refresh_token")
+  accessToken        String?   @map(name: "access_token")
+  accessTokenExpires DateTime? @map(name: "access_token_expires")
+  createdAt          DateTime  @default(now()) @map(name: "created_at")
+  updatedAt          DateTime  @default(now()) @map(name: "updated_at")
+
+  @@index([providerAccountId], name: "providerAccountId")
+  @@index([providerId], name: "providerId")
+  @@index([userId], name: "userId")
+  @@map(name: "accounts")
+}
+
+model Session {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @map(name: "user_id")
+  expires      DateTime
+  sessionToken String   @unique @map(name: "session_token")
+  accessToken  String   @unique @map(name: "access_token")
+  createdAt    DateTime @default(now()) @map(name: "created_at")
+  updatedAt    DateTime @default(now()) @map(name: "updated_at")
+
+  @@map(name: "sessions")
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime? @map(name: "email_verified")
+  image         String?
+  createdAt     DateTime  @default(now()) @map(name: "created_at")
+  updatedAt     DateTime  @default(now()) @map(name: "updated_at")
+
+  @@map(name: "users")
+}
+
+model VerificationRequest {
+  id         Int      @id @default(autoincrement())
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  createdAt  DateTime @default(now()) @map(name: "created_at")
+  updatedAt  DateTime @default(now()) @map(name: "updated_at")
+
+  @@map(name: "verification_requests")
+}
+
+// NPC model tracks non-player characters for the campaign
+model NPC {
+  id                String           @id @default(cuid()) // Unique identifier with default value as cuid()
+  name              String // NPC's name
+  description       String? // Optional description of the NPC
+  characterSheetUrl String? // Optional URL for NPC's character sheet
+  groups            Group[]          @relation("GroupToNPC") // Groups the NPC is associated with
+  storylinePoints   StorylinePoint[] @relation("StorylinePointToNPC") // Storyline points associated with the NPC
+  role              String? // Role or position within a group for added context
+  createdAt         DateTime         @default(now()) // Auto-set creation date
+  updatedAt         DateTime         @updatedAt // Auto-updated timestamp
+}
+
+// Location model handles various geographical points of interest
+model Location {
+  id              String           @id @default(cuid()) // Unique identifier for each location
+  name            String // Name of the location
+  description     String? // Optional description for context
+  storylinePoints StorylinePoint[] @relation("StorylinePointToLocation")
+  createdAt       DateTime         @default(now()) // Auto-set creation date
+  updatedAt       DateTime         @updatedAt // Auto-updated timestamp
+}
+
+// Group model tracks organized parties or factions in the campaign
+model Group {
+  id          String   @id @default(cuid()) // Unique identifier for the group
+  name        String // Group's name
+  description String? // Optional description for context
+  members     NPC[]    @relation("GroupToNPC") // Array of NPCs associated with the group
+  createdAt   DateTime @default(now()) // Auto-set creation date
+  updatedAt   DateTime @updatedAt // Auto-updated timestamp
+}
+
+// StorylinePoint model maps key points in the campaign's narrative
+model StorylinePoint {
+  id               String     @id @default(cuid()) // Unique identifier for storyline points
+  title            String // Title for the storyline point
+  description      String? // Optional description for added context
+  relatedNPCs      NPC[]      @relation("StorylinePointToNPC") // NPCs tied to this storyline point
+  relatedLocations Location[] @relation("StorylinePointToLocation") // Associated locations for the storyline (consider pagination)
+  createdAt        DateTime   @default(now()) // Auto-set creation date
+  updatedAt        DateTime   @updatedAt // Auto-updated timestamp
+}
